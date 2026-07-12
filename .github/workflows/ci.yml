@@ -27,11 +27,27 @@ jobs:
           sudo apt-get install --yes --no-install-recommends chktex lacheck
           python3 -m pip install --disable-pip-version-check --requirement requirements-ci.txt
 
+      - name: Install actionlint
+        env:
+          ACTIONLINT_VERSION: 1.7.12
+          ACTIONLINT_SHA256: 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8
+        run: |
+          archive="actionlint_${ACTIONLINT_VERSION}_linux_amd64.tar.gz"
+          curl --fail --silent --show-error --location \
+            "https://github.com/rhysd/actionlint/releases/download/v${ACTIONLINT_VERSION}/${archive}" \
+            --output "/tmp/${archive}"
+          printf '%s  %s\n' "$ACTIONLINT_SHA256" "/tmp/${archive}" | sha256sum --check
+          tar --extract --gzip --file "/tmp/${archive}" --directory /tmp actionlint
+          sudo install --mode 0755 /tmp/actionlint /usr/local/bin/actionlint
+
       - name: Validate repository structure
         run: python3 scripts/check_structure.py
 
+      - name: Validate GitHub Actions workflows
+        run: actionlint
+
       - name: Check spelling
-        run: python3 -m codespell
+        run: python3 -m codespell_lib
 
       - name: Run ChkTeX
         run: chktex -q paper.tex
@@ -94,9 +110,9 @@ jobs:
           {
             echo '## Compiled paper'
             echo
-            echo '[Download the PDF artifact](${{ steps.paper-artifact.outputs.artifact-url }})'
+            printf '%s\n' "[Download the PDF artifact](${{ steps.paper-artifact.outputs.artifact-url }})"
             echo
-            echo 'Commit: `${{ github.sha }}`'
+            printf '%s\n' "Commit: \`${{ github.sha }}\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload diagnostics after failure

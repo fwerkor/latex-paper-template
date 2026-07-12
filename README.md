@@ -59,7 +59,7 @@ python3 -m pip install --user pypdf codespell
 On Debian or Ubuntu:
 
 ```bash
-sudo apt-get install latexmk texlive-latex-extra texlive-science \
+sudo apt-get install latexmk lmodern texlive-latex-extra texlive-science \
   texlive-fonts-recommended texlive-bibtex-extra chktex lacheck
 ```
 
@@ -68,6 +68,7 @@ sudo apt-get install latexmk texlive-latex-extra texlive-science \
 `Paper CI` runs on every push, pull request, and manual dispatch. It performs:
 
 - repository and `\input`/bibliography structure validation;
+- GitHub Actions schema, expression, and embedded-shell validation with actionlint;
 - spelling checks for source and documentation;
 - ChkTeX and LaCheck static analysis;
 - reproducible compilation with a pinned GitHub Action revision and TeX Live 2025;

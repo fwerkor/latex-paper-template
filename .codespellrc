@@ -1,0 +1,5 @@
+[codespell]
+skip = .git,build,dist,public,*.pdf,*.bbl,*.blg,*.log
+check-filenames = true
+quiet-level = 2
+ignore-words-list = nd,te,fo

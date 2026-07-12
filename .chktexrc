@@ -1,0 +1,10 @@
+# Suppress style rules that are too opinionated for a generic academic template.
+CmdLine
+{
+  -n1
+  -n8
+  -n13
+  -n24
+  -n36
+  -n44
+}

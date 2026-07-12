@@ -1,0 +1,109 @@
+name: Paper CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: paper-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Source checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Install linters
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends chktex lacheck
+          python3 -m pip install --disable-pip-version-check --requirement requirements-ci.txt
+
+      - name: Validate repository structure
+        run: python3 scripts/check_structure.py
+
+      - name: Check spelling
+        run: python3 -m codespell
+
+      - name: Run ChkTeX
+        run: chktex -q paper.tex
+
+      - name: Run LaCheck
+        run: lacheck paper.tex
+
+      - name: Check shell scripts
+        run: shellcheck scripts/*.sh
+
+      - name: Check Python syntax
+        run: python3 -m py_compile scripts/*.py
+
+  build:
+    name: Compile and validate PDF
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Compile paper
+        uses: xu-cheng/latex-action@6549dc21effb2730855a1281407ecfcececc6c1b # 4.1.0
+        with:
+          root_file: paper.tex
+          texlive_version: 2025
+          args: >-
+            -pdf
+            -file-line-error
+            -halt-on-error
+            -interaction=nonstopmode
+            -synctex=1
+            -outdir=build
+
+      - name: Install PDF validator
+        run: python3 -m pip install --disable-pip-version-check --requirement requirements-ci.txt
+
+      - name: Check LaTeX diagnostics
+        run: python3 scripts/check_log.py build/paper.log
+
+      - name: Validate PDF
+        run: python3 scripts/validate_pdf.py build/paper.pdf
+
+      - name: Upload compiled paper
+        id: paper-artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: paper-${{ github.sha }}
+          path: |
+            build/paper.pdf
+            build/paper.log
+            build/paper.bbl
+            build/paper.synctex.gz
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 6
+
+      - name: Publish download link in job summary
+        run: |
+          {
+            echo '## Compiled paper'
+            echo
+            echo '[Download the PDF artifact](${{ steps.paper-artifact.outputs.artifact-url }})'
+            echo
+            echo 'Commit: `${{ github.sha }}`'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload diagnostics after failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: paper-diagnostics-${{ github.sha }}
+          path: build/
+          if-no-files-found: ignore
+          retention-days: 14

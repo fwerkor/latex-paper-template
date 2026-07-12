@@ -1,0 +1,31 @@
+name: Build problem
+description: Report a LaTeX, CI, artifact, or Pages deployment failure
+title: "build: "
+labels: [build]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Failure summary
+      description: State what failed and link the workflow run.
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Relevant log excerpt
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: commit
+    attributes:
+      label: Commit
+      placeholder: Full commit SHA
+  - type: dropdown
+    id: local
+    attributes:
+      label: Reproduces locally
+      options: [Yes, No, Not tested]
+    validations:
+      required: true

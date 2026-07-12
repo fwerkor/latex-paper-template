@@ -1,0 +1,87 @@
+name: Release paper
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to release, for example v1.0.0
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: paper-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build release assets
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Resolve release tag
+        id: tag
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_TAG: ${{ inputs.tag }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            echo "name=$INPUT_TAG" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=$REF_NAME" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check out tagged source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ steps.tag.outputs.name }}
+          fetch-depth: 0
+
+      - name: Compile paper
+        uses: xu-cheng/latex-action@6549dc21effb2730855a1281407ecfcececc6c1b # 4.1.0
+        with:
+          root_file: paper.tex
+          texlive_version: 2025
+          args: >-
+            -pdf
+            -file-line-error
+            -halt-on-error
+            -interaction=nonstopmode
+            -synctex=1
+            -outdir=build
+
+      - name: Install PDF validator
+        run: python3 -m pip install --disable-pip-version-check --requirement requirements-ci.txt
+
+      - name: Validate and package release
+        run: |
+          python3 scripts/check_log.py build/paper.log
+          python3 scripts/validate_pdf.py build/paper.pdf
+          ./scripts/package-source.sh
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.name }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" \
+              dist/paper.pdf \
+              dist/paper-source.tar.gz \
+              dist/SHA256SUMS \
+              --clobber
+          else
+            gh release create "$TAG" \
+              dist/paper.pdf \
+              dist/paper-source.tar.gz \
+              dist/SHA256SUMS \
+              --title "Paper $TAG" \
+              --generate-notes \
+              --verify-tag
+          fi

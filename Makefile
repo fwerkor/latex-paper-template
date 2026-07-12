@@ -3,7 +3,7 @@ ROOT := paper.tex
 OUT := build
 PDF := $(OUT)/paper.pdf
 
-.PHONY: all build watch check lint clean dist help
+.PHONY: all build watch check test lint clean dist help
 
 all: build
 
@@ -14,10 +14,14 @@ watch:
 	mkdir -p $(OUT)
 	latexmk -pdf -pvc -file-line-error -halt-on-error -interaction=nonstopmode -synctex=1 -outdir=$(OUT) $(ROOT)
 
-check: build
+check: build test
 	python3 scripts/check_structure.py
 	python3 scripts/check_log.py $(OUT)/paper.log
 	python3 scripts/validate_pdf.py $(PDF)
+
+test:
+	python3 scripts/read_preview_config.py
+	python3 -m unittest discover --start-directory tests --verbose
 
 lint:
 	codespell
@@ -35,6 +39,7 @@ help:
 	  'make build  - compile the paper into build/paper.pdf' \
 	  'make watch  - continuously rebuild while editing' \
 	  'make check  - compile and run structural/log/PDF checks' \
+	  'make test   - validate preview configuration and controls' \
 	  'make lint   - run spelling and LaTeX linters' \
 	  'make dist   - create source and PDF release bundles' \
 	  'make clean  - remove generated files'

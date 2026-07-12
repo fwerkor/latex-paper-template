@@ -9,9 +9,10 @@ A reusable, CI-first academic paper repository. Every push and pull request comp
 
 1. Select **Use this template** on GitHub and create a repository.
 2. Edit `metadata.tex`, then replace the placeholder section files under `sections/`.
-3. Update the repository-specific badge and Pages URL in this README.
-4. In **Settings → Pages**, select **GitHub Actions** as the source if GitHub does not enable it automatically.
-5. Push a commit. The PDF becomes available from both the workflow run and the Pages site.
+3. Review the two switches in `preview-config.json`.
+4. Update the repository-specific badge and Pages URL in this README.
+5. In **Settings → Pages**, select **GitHub Actions** as the source if GitHub does not enable it automatically.
+6. Push a commit. The PDF becomes available from both the workflow run and, by default, the Pages site.
 
 ## Online preview and downloads
 
@@ -24,6 +25,24 @@ For this repository:
 
 The Pages preview tracks the latest successful build from `main`. Pull requests do not replace the public preview; their PDFs remain isolated as workflow artifacts.
 
+## Preview controls
+
+Edit `preview-config.json`:
+
+```json
+{
+  "enable_public_preview": true,
+  "block_search_indexing": true
+}
+```
+
+| Setting | Default | Effect |
+| --- | --- | --- |
+| `enable_public_preview` | `true` | Publishes the latest `main` PDF through GitHub Pages. Setting it to `false` deploys a disabled notice without `paper.pdf`, replacing the currently published PDF on the next successful run. |
+| `block_search_indexing` | `true` | Adds page-level `noindex`, `nofollow`, `noarchive`, and related directives, and publishes a `robots.txt` that disallows all crawlers. Setting it to `false` publishes an `Allow: /` rule and removes the page-level robots directives. |
+
+Crawler blocking is advisory and is not access control. Anyone who knows the Pages URL can still open the PDF while public preview is enabled. Disabling public preview removes the PDF from future Pages deployments, but it cannot revoke copies that were previously downloaded or cached elsewhere. Per-commit workflow artifacts continue to be produced regardless of these switches.
+
 ## Repository layout
 
 ```text
@@ -34,6 +53,7 @@ sections/                  One file per paper section
 tables/                    Standalone table fragments
 figures/                   Figures and editable figure sources
 references.bib             BibTeX database
+preview-config.json        Public preview and crawler-indexing switches
 scripts/                   Build and validation utilities
 .github/workflows/         CI, Pages deployment, and release automation
 ```
@@ -45,7 +65,8 @@ A recent TeX Live installation with `latexmk` is recommended.
 ```bash
 make build      # build/paper.pdf
 make watch      # rebuild continuously
-make check      # compile plus structural/log/PDF checks
+make check      # compile plus structural/log/PDF/preview checks
+make test       # validate preview switches without rebuilding the paper
 make lint       # codespell and ChkTeX
 make clean
 ```
@@ -77,7 +98,7 @@ sudo apt-get install latexmk lmodern texlive-latex-extra texlive-science \
 - upload of the PDF, log, bibliography output, and SyncTeX data as a per-commit artifact;
 - upload of diagnostics even when compilation fails.
 
-`Publish PDF` recompiles successful `main` revisions and deploys a dependency-free PDF viewer to GitHub Pages. `Release paper` creates a GitHub Release for `v*` tags. Dependabot proposes updates for GitHub Actions each week.
+`Publish PDF` reads `preview-config.json`, then either deploys the latest `main` PDF with the selected crawler policy or replaces the site with a preview-disabled notice. `Release paper` creates a GitHub Release for `v*` tags. Dependabot proposes updates for GitHub Actions each week.
 
 ## Adapting to a conference template
 

@@ -60,6 +60,7 @@ def main() -> int:
         ENTRYPOINT,
         ROOT / "metadata.tex",
         ROOT / "references.bib",
+        ROOT / "preview-config.json",
         ROOT / "README.md",
         ROOT / "LICENSE",
     ]

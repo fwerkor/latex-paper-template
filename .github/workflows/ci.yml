@@ -41,7 +41,9 @@ jobs:
           sudo install --mode 0755 /tmp/actionlint /usr/local/bin/actionlint
 
       - name: Validate repository structure
-        run: python3 scripts/check_structure.py
+        run: |
+          python3 scripts/check_structure.py
+          python3 scripts/read_preview_config.py
 
       - name: Validate GitHub Actions workflows
         run: actionlint
@@ -59,7 +61,10 @@ jobs:
         run: shellcheck scripts/*.sh
 
       - name: Check Python syntax
-        run: python3 -m py_compile scripts/*.py
+        run: python3 -m py_compile scripts/*.py tests/*.py
+
+      - name: Test preview controls
+        run: python3 -m unittest discover --start-directory tests --verbose
 
   build:
     name: Compile and validate PDF

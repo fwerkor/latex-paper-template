@@ -1,0 +1,32 @@
+% Toggle anonymous review mode here.
+\newif\ifanonymous
+\anonymoustrue
+% \anonymousfalse
+
+\newcommand{\papertitle}{A Reproducible Research Paper Template}
+\newcommand{\papershorttitle}{Reproducible Paper Template}
+
+\title{\papertitle}
+
+\ifanonymous
+  \author{Anonymous Authors}
+\else
+  \author{
+    First Author\\
+    Department or Institution\\
+    \texttt{first.author@example.com}
+    \and
+    Second Author\\
+    Department or Institution\\
+    \texttt{second.author@example.com}
+  }
+\fi
+
+\date{}
+
+\hypersetup{
+  pdftitle={\papertitle},
+  pdfauthor={\ifanonymous Anonymous Authors\else First Author and Second Author\fi},
+  pdfsubject={Academic research paper},
+  pdfkeywords={research, reproducibility, LaTeX}
+}

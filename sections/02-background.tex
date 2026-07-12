@@ -1,0 +1,15 @@
+\section{Background and Motivation}
+\label{sec:background}
+
+Define the concepts, notation, and assumptions required by the method. Prefer precise notation over informal descriptions when ambiguity would affect the argument. For example, let $x \in \mathcal{X}$ denote an input and let $f_{\theta}$ be a model parameterized by $\theta$.
+
+The empirical risk on a dataset $\mathcal{D}$ can be written as
+\begin{equation}
+  \mathcal{L}(\theta; \mathcal{D})
+  = \frac{1}{|\mathcal{D}|}
+    \sum_{(x,y) \in \mathcal{D}}
+    \ell\!\left(f_{\theta}(x), y\right).
+  \label{eq:empirical-risk}
+\end{equation}
+
+Use this section to motivate the design choices introduced later rather than duplicating the related-work discussion.

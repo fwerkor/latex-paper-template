@@ -1,0 +1,28 @@
+\section{Method}
+\label{sec:method}
+
+Describe the method in enough detail for an independent implementation. State inputs, outputs, invariants, computational costs, and failure conditions. \Cref{alg:method} gives a compact placeholder.
+
+\begin{algorithm}[t]
+  \caption{Placeholder procedure for \methodname}
+  \label{alg:method}
+  \begin{algorithmic}[1]
+    \Require Input $x$, parameters $\theta$, budget $B$
+    \Ensure Output $y$
+    \State Initialize state $s \gets \Call{Initialize}{x, \theta}$
+    \For{$t = 1, \ldots, B$}
+      \State $s \gets \Call{Update}{s, x, \theta}$
+    \EndFor
+    \State \Return $\Call{Decode}{s}$
+  \end{algorithmic}
+\end{algorithm}
+
+A useful objective may combine quality and cost:
+\begin{equation}
+  \theta^{\star}
+  = \argmin_{\theta}
+    \mathcal{L}(\theta; \mathcal{D})
+    + \lambda\,\mathcal{C}(\theta),
+  \label{eq:objective}
+\end{equation}
+where $\mathcal{C}$ measures computational or operational cost.

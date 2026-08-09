@@ -2,17 +2,11 @@ name: Paper CI
 
 on:
   push:
-    branches:
-      - '**'
   pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
-
-env:
-  TEXLIVE_IMAGE: ghcr.io/xu-cheng/texlive-historic-alpine:2025
-  TEXLIVE_CACHE_KEY: 2025-73a48f4fc1d3ee7357c8ea5d274af161541c0981432da33339eed7ac1f8e083d
 
 concurrency:
   group: paper-ci-${{ github.workflow }}-${{ github.ref }}
@@ -25,7 +19,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Check out source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Install linters
         run: |
@@ -78,19 +72,13 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Check out source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Restore cached TeX Live image
-        uses: ./.github/actions/cache-texlive
-        with:
-          image: ${{ env.TEXLIVE_IMAGE }}
-          cache-key: ${{ env.TEXLIVE_CACHE_KEY }}
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Compile paper
         uses: xu-cheng/latex-action@6549dc21effb2730855a1281407ecfcececc6c1b # 4.1.0
         with:
           root_file: paper.tex
-          docker_image: ${{ env.TEXLIVE_IMAGE }}
+          texlive_version: 2025
           args: >-
             -pdf
             -file-line-error

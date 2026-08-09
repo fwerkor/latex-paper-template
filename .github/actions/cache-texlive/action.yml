@@ -1,0 +1,41 @@
+name: Cache TeX Live image
+description: Restore the large TeX Live Docker image from the GitHub Actions cache.
+
+inputs:
+  image:
+    description: Docker image used by latex-action.
+    required: true
+  cache-key:
+    description: Stable cache key including the TeX Live image revision.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Restore TeX Live image archive
+      id: cache
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+      with:
+        path: ~/.cache/latex-action/texlive-image.tar
+        key: texlive-image-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cache-key }}
+
+    - name: Load or pull TeX Live image
+      shell: bash
+      env:
+        CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}
+        TEXLIVE_IMAGE: ${{ inputs.image }}
+      run: |
+        set -euo pipefail
+        archive="$HOME/.cache/latex-action/texlive-image.tar"
+
+        if [[ "$CACHE_HIT" == "true" ]]; then
+          echo "Loading cached TeX Live image: $TEXLIVE_IMAGE"
+          docker load --input "$archive"
+        else
+          echo "Cache miss; pulling TeX Live image once: $TEXLIVE_IMAGE"
+          mkdir -p "$(dirname "$archive")"
+          docker pull "$TEXLIVE_IMAGE"
+          docker save --output "$archive" "$TEXLIVE_IMAGE"
+        fi
+
+        docker image inspect "$TEXLIVE_IMAGE" >/dev/null

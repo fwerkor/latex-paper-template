@@ -1,22 +1,69 @@
 name: Publish PDF
 
 on:
-  push:
-    branches: [main]
+  workflow_run:
+    workflows:
+      - Paper CI
+    types:
+      - completed
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
   pages: write
   id-token: write
 
+env:
+  TEXLIVE_IMAGE: ghcr.io/xu-cheng/texlive-historic-alpine:2025
+  TEXLIVE_CACHE_KEY: 2025-73a48f4fc1d3ee7357c8ea5d274af161541c0981432da33339eed7ac1f8e083d
+
 concurrency:
   group: github-pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
+  preview-config:
+    name: Read preview configuration
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main')
+    runs-on: ubuntu-latest
+    outputs:
+      enable_public_preview: ${{ steps.config.outputs.enable_public_preview }}
+      block_search_indexing: ${{ steps.config.outputs.block_search_indexing }}
+      source_sha: ${{ steps.source.outputs.sha }}
+    steps:
+      - name: Resolve source revision
+        id: source
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          if [[ "$EVENT_NAME" == "workflow_run" ]]; then
+            echo "sha=$WORKFLOW_RUN_SHA" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=$CURRENT_SHA" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.source.outputs.sha }}
+
+      - name: Read preview configuration
+        id: config
+        run: python3 scripts/read_preview_config.py --github-output "$GITHUB_OUTPUT"
+
   build-and-deploy:
-    name: Build and publish online preview
+    name: Publish online preview
+    needs: preview-config
+    if: needs.preview-config.outputs.enable_public_preview == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:
@@ -24,18 +71,33 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Check out source
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.preview-config.outputs.source_sha }}
 
-      - name: Read preview configuration
-        id: preview-config
-        run: python3 scripts/read_preview_config.py --github-output "$GITHUB_OUTPUT"
+      - name: Download compiled paper from CI
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: paper-${{ needs.preview-config.outputs.source_sha }}
+          path: build
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
 
-      - name: Compile paper
-        if: steps.preview-config.outputs.enable_public_preview == 'true'
+      - name: Restore cached TeX Live image
+        if: github.event_name == 'workflow_dispatch'
+        uses: ./.github/actions/cache-texlive
+        with:
+          image: ${{ env.TEXLIVE_IMAGE }}
+          cache-key: ${{ env.TEXLIVE_CACHE_KEY }}
+
+      - name: Compile paper for manual deployment
+        if: github.event_name == 'workflow_dispatch'
         uses: xu-cheng/latex-action@6549dc21effb2730855a1281407ecfcececc6c1b # 4.1.0
         with:
           root_file: paper.tex
           texlive_version: 2025
+          docker_image: ${{ env.TEXLIVE_IMAGE }}
           args: >-
             -pdf
             -file-line-error
@@ -45,27 +107,24 @@ jobs:
             -outdir=build
 
       - name: Install PDF validator
-        if: steps.preview-config.outputs.enable_public_preview == 'true'
         run: python3 -m pip install --disable-pip-version-check --requirement requirements-ci.txt
 
       - name: Validate build
-        if: steps.preview-config.outputs.enable_public_preview == 'true'
         run: |
           python3 scripts/check_log.py build/paper.log
           python3 scripts/validate_pdf.py build/paper.pdf
 
       - name: Generate browser preview
         env:
-          ENABLE_PUBLIC_PREVIEW: ${{ steps.preview-config.outputs.enable_public_preview }}
-          BLOCK_SEARCH_INDEXING: ${{ steps.preview-config.outputs.block_search_indexing }}
+          BLOCK_SEARCH_INDEXING: ${{ needs.preview-config.outputs.block_search_indexing }}
         run: |
           python3 scripts/generate_preview.py \
             --pdf build/paper.pdf \
             --output public \
             --title "LaTeX Paper Preview" \
             --repository "$GITHUB_REPOSITORY" \
-            --sha "$GITHUB_SHA" \
-            --public-preview-enabled "$ENABLE_PUBLIC_PREVIEW" \
+            --sha "${{ needs.preview-config.outputs.source_sha }}" \
+            --public-preview-enabled true \
             --block-search-indexing "$BLOCK_SEARCH_INDEXING"
 
       - name: Configure GitHub Pages

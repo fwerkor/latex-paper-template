@@ -96,7 +96,6 @@ jobs:
         uses: xu-cheng/latex-action@6549dc21effb2730855a1281407ecfcececc6c1b # 4.1.0
         with:
           root_file: paper.tex
-          texlive_version: 2025
           docker_image: ${{ env.TEXLIVE_IMAGE }}
           args: >-
             -pdf

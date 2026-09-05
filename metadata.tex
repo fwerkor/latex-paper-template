@@ -12,13 +12,13 @@
   \author{Anonymous Authors}
 \else
   \author{%
-    First Author\\
-    Department or Institution\\
-    \texttt{first.author@example.com}
-    \and
-    Second Author\\
-    Department or Institution\\
-    \texttt{second.author@example.com}
+    \begin{tabular}{cc}
+      First Author\textsuperscript{1} & Second Author\textsuperscript{2}\\[0.02em]
+      {\footnotesize\texttt{first.author@example.com}} &
+      {\footnotesize\texttt{second.author@example.com}}
+    \end{tabular}\\[3.0em]
+    \makebox[0.25\textwidth][c]{\textsuperscript{1}First Institution}%
+    \makebox[0.25\textwidth][c]{\textsuperscript{2}Second Institution}
   }
 \fi
 
